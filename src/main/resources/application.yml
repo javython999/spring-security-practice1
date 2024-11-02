@@ -1,3 +1,23 @@
 spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/study
+    username: postgres
+    password: postgresql
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          lob:
+            non_contextual_creation: true
+
   thymeleaf:
     cache: false
+
+decorator:
+  datasource:
+    p6spy:
+      enable-logging: true
