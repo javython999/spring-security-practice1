@@ -1,11 +1,13 @@
 package com.errday.springsecuritypractice1.users.domain.dto;
 
+import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
 
+@Getter
 public class AccountContext implements UserDetails {
 
     private final AccountDto accountDto;
