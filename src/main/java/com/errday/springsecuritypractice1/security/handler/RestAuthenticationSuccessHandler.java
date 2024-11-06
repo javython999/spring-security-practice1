@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-@Component("restAuthentictationSuccessHandler")
+@Component("restAuthenticationSuccessHandler")
 public class RestAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
 
     @Override

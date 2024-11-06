@@ -12,6 +12,8 @@ import org.springframework.security.web.authentication.AuthenticationFailureHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component("restAuthenticationFailureHandler")
 public class RestAuthenticationFailureHandler implements AuthenticationFailureHandler {
@@ -23,10 +25,14 @@ public class RestAuthenticationFailureHandler implements AuthenticationFailureHa
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
+        Map<String, String> message = new HashMap<>();
         if (exception instanceof BadCredentialsException) {
-            objectMapper.writeValue(response.getWriter(), "Invalid username or password");
+            message.put("message", "Invalid username or password");
+            objectMapper.writeValue(response.getWriter(), message);
+            return;
         }
 
-        objectMapper.writeValue(response.getWriter(), "Authentication Failed");
+        message.put("message", "Authentication Failed");
+        objectMapper.writeValue(response.getWriter(), message);
     }
 }

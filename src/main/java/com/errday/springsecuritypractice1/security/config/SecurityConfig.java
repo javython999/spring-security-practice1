@@ -1,10 +1,8 @@
 package com.errday.springsecuritypractice1.security.config;
 
-import com.errday.springsecuritypractice1.security.filter.RestAuthenticationFilter;
-import com.errday.springsecuritypractice1.security.handler.FormAccessDeniedHandler;
-import com.errday.springsecuritypractice1.security.handler.FormAuthenticationFailureHandler;
-import com.errday.springsecuritypractice1.security.handler.FormAuthenticationSuccessHandler;
-import com.errday.springsecuritypractice1.security.handler.RestAuthenticationFailureHandler;
+import com.errday.springsecuritypractice1.security.dsl.RestApiDsl;
+import com.errday.springsecuritypractice1.security.entrypoint.RestAuthenticationEntryPoint;
+import com.errday.springsecuritypractice1.security.handler.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -16,9 +14,7 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 
 @Configuration
@@ -30,7 +26,7 @@ public class SecurityConfig {
     private final AuthenticationProvider restAuthenticationProvider;
     private final AuthenticationDetailsSource<HttpServletRequest, WebAuthenticationDetails> authenticationDetailsSource;
     private final FormAuthenticationSuccessHandler formAuthenticationSuccessHandler;
-    private final RestAuthentictationSuccessHandler restAuthenticationSuccessHandler;
+    private final RestAuthenticationSuccessHandler restAuthenticationSuccessHandler;
     private final FormAuthenticationFailureHandler formAuthenticationFailureHandler;
     private final RestAuthenticationFailureHandler restAuthenticationFailureHandler;
 
@@ -71,21 +67,26 @@ public class SecurityConfig {
         http
             .securityMatcher("/api/**") // /api를 포함하는 모든 요청을 처리한다.
             .authorizeHttpRequests(authorizeRequests -> authorizeRequests
-                .requestMatchers("/css/**", "/images/**", "/js/**", "/favicon.*").permitAll()
+                .requestMatchers("/css/**", "/images/**", "/js/**", "/favicon.*", "/*/icon-*").permitAll() // 정적 자원 설정
+                .requestMatchers("/api/", "/api/login").permitAll()
+                .requestMatchers("/api/user").hasAuthority("ROLE_USER")
+                .requestMatchers("/api/manager").hasAuthority("ROLE_MANAGER")
+                .requestMatchers("/api/admin").hasAuthority("ROLE_ADMIN")
                 .anyRequest().permitAll())
-            .csrf(AbstractHttpConfigurer::disable) // Rest 방식의 비동기 통신은 클라이언트에서 CSRF 값을 직접 전달해주어야 한다. 일단 비활성화 한다.
-            .addFilterBefore(restAuthenticationFilter(authenticationManager), UsernamePasswordAuthenticationFilter.class) // UsernamePasswordAuthenticationFilter 앞에 restAuthenticationFilter를 추가해준다.
+            //.csrf(AbstractHttpConfigurer::disable) // Rest 방식의 비동기 통신은 클라이언트에서 CSRF 값을 직접 전달해주어야 한다.
             .authenticationManager(authenticationManager)
+            .exceptionHandling(exception -> exception
+                .authenticationEntryPoint(new RestAuthenticationEntryPoint())
+                .accessDeniedHandler(new RestAccessDeniedHandler()))
+            .with(new RestApiDsl<>(), restDsl -> restDsl
+                    .restAuthenticationSuccessHandler(restAuthenticationSuccessHandler)
+                    .restAuthenticationFailureHandler(restAuthenticationFailureHandler)
+                    .loginPage("/api/login")
+                    .loginProcessingUrl("/api/login"))
+
         ;
 
         return http.build();
     }
 
-    private RestAuthenticationFilter restAuthenticationFilter(AuthenticationManager authenticationManager) {
-        RestAuthenticationFilter restAuthenticationFilter = new RestAuthenticationFilter();
-        restAuthenticationFilter.setAuthenticationManager(authenticationManager);
-        restAuthenticationFilter.setAuthenticationSuccessHandler(restAuthenticationSuccessHandler);
-        restAuthenticationFilter.setAuthenticationFailureHandler(restAuthenticationFailureHandler);
-        return restAuthenticationFilter;
-    }
 }
