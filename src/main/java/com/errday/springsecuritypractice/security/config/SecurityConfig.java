@@ -2,6 +2,7 @@ package com.errday.springsecuritypractice.security.config;
 
 import com.errday.springsecuritypractice.security.dsl.RestApiDsl;
 import com.errday.springsecuritypractice.security.entrypoint.RestAuthenticationEntryPoint;
+import com.errday.springsecuritypractice.security.filter.CustomAuthorizationFilter;
 import com.errday.springsecuritypractice.security.handler.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +17,7 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
+import org.springframework.security.web.access.ExceptionTranslationFilter;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 
 @Configuration
@@ -31,13 +32,15 @@ public class SecurityConfig {
     private final RestAuthenticationSuccessHandler restAuthenticationSuccessHandler;
     private final FormAuthenticationFailureHandler formAuthenticationFailureHandler;
     private final RestAuthenticationFailureHandler restAuthenticationFailureHandler;
-    private final AuthorizationManager<RequestAuthorizationContext> customDynamicAuthorizationManager;
+    //private final AuthorizationManager<RequestAuthorizationContext> customDynamicAuthorizationManager;
+    private final AuthorizationManager<HttpServletRequest> requestMatcherDynamicAuthorizationManager;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(authorizeRequests -> authorizeRequests
-                .anyRequest().access(customDynamicAuthorizationManager))
+                //.anyRequest().access(customDynamicAuthorizationManager))
+                .anyRequest().permitAll())
             .formLogin(formLogin -> formLogin
                 .loginPage("/login")
                 .authenticationDetailsSource(authenticationDetailsSource) // 추가적인 정보를 인증 객체에 추가할 수 있다. 그 작업을 처리해주는 클래스 지정
@@ -48,9 +51,15 @@ public class SecurityConfig {
             .authenticationProvider(authenticationProvider) // 커스텀 AuthenticationProvider 설정
             .exceptionHandling(exceptioin -> exceptioin
                 .accessDeniedHandler(new FormAccessDeniedHandler("/denied")))   // 커스텀 AccessDeniedHandler
+            .addFilterAfter(customAuthorizationFilter(null), ExceptionTranslationFilter.class)
         ;
 
         return http.build();
+    }
+
+    @Bean
+    public CustomAuthorizationFilter customAuthorizationFilter(HttpSecurity http) throws Exception {
+        return new CustomAuthorizationFilter(requestMatcherDynamicAuthorizationManager);
     }
 
     @Bean

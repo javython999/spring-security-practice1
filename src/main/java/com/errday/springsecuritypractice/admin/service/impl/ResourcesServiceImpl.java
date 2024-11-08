@@ -3,6 +3,7 @@ package com.errday.springsecuritypractice.admin.service.impl;
 import com.errday.springsecuritypractice.admin.repository.ResourcesRepository;
 import com.errday.springsecuritypractice.admin.service.ResourcesService;
 import com.errday.springsecuritypractice.domain.entity.Resources;
+import com.errday.springsecuritypractice.security.manager.CustomDynamicAuthorizationManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
@@ -17,6 +18,7 @@ import java.util.List;
 public class ResourcesServiceImpl implements ResourcesService {
 
     private final ResourcesRepository resourcesRepository;
+    private final CustomDynamicAuthorizationManager customDynamicAuthorizationManager;
 
     @Transactional
     public Resources getResources(long id) {
@@ -31,10 +33,12 @@ public class ResourcesServiceImpl implements ResourcesService {
     @Transactional
     public void createResources(Resources resources){
         resourcesRepository.save(resources);
+        customDynamicAuthorizationManager.reload();
     }
 
     @Transactional
     public void deleteResources(long id) {
         resourcesRepository.deleteById(id);
+        customDynamicAuthorizationManager.reload();
     }
 }

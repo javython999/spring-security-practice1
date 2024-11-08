@@ -4,6 +4,7 @@ import com.errday.springsecuritypractice.admin.repository.ResourcesRepository;
 import com.errday.springsecuritypractice.security.mapper.PersistentUrlRoleMapper;
 import com.errday.springsecuritypractice.security.service.DynamicAuthorizationService;
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.authorization.AuthorityAuthorizationManager;
@@ -25,10 +26,10 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
-public class CustomDynamicAuthorizationManager implements AuthorizationManager<RequestAuthorizationContext> {
+public class RequestMatcherDynamicAuthorizationManager implements AuthorizationManager<HttpServletRequest> {
 
     List<RequestMatcherEntry<AuthorizationManager<RequestAuthorizationContext>>> mappings;
-    private static final AuthorizationDecision DENY = new AuthorizationDecision(false);
+
     private static final AuthorizationDecision ACCESS = new AuthorizationDecision(true);
     private final HandlerMappingIntrospector handlerMappingIntrospector;
     private final ResourcesRepository resourcesRepository;
@@ -57,19 +58,19 @@ public class CustomDynamicAuthorizationManager implements AuthorizationManager<R
     }
 
     @Override
-    public void verify(Supplier<Authentication> authentication, RequestAuthorizationContext object) {
-        AuthorizationManager.super.verify(authentication, object);
+    public void verify(Supplier<Authentication> authentication, HttpServletRequest request) {
+        AuthorizationManager.super.verify(authentication, request);
     }
 
     @Override
-    public AuthorizationDecision check(Supplier<Authentication> authentication, RequestAuthorizationContext request) {
+    public AuthorizationDecision check(Supplier<Authentication> authentication, HttpServletRequest request) {
 
         for (RequestMatcherEntry<AuthorizationManager<RequestAuthorizationContext>> mapping : this.mappings) {
             RequestMatcher matcher = mapping.getRequestMatcher();
-            RequestMatcher.MatchResult matchResult = matcher.matcher(request.getRequest());
+            RequestMatcher.MatchResult matchResult = matcher.matcher(request);
             if (matchResult.isMatch()) {
                 AuthorizationManager<RequestAuthorizationContext> manager = mapping.getEntry();
-                return manager.check(authentication, new RequestAuthorizationContext(request.getRequest(), matchResult.getVariables()));
+                return manager.check(authentication, new RequestAuthorizationContext(request, matchResult.getVariables()));
             }
         }
 
